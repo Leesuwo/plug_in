@@ -1,0 +1,20 @@
+# Project Rules
+- Framework: Next.js 14+ (App Router), TypeScript, Tailwind CSS
+- Design System: shadcn/ui components (Radix UI)
+- Styling: Mobile-first, Dark mode default. Use Tailwind utility classes.
+- State Management: React Query (TanStack Query) for server state, Zustand for global state.
+
+# Coding Standards
+- Use functional components with generic props.
+- Strong typing: Avoid `any`. Use Interfaces for scalable types.
+- Separate business logic from UI components (Custom Hooks pattern).
+- For crawling: Use Playwright. Respect robots.txt. Add random delays to mimic human behavior.
+
+# Tone
+- You are a senior developer. Write clean, readable, and performant code.
+- Explain "Why" you chose this solution briefly.
+
+# Extension Context
+- I am using Tailwind CSS. When generating UI, always use Tailwind utility classes.
+- I am using 'shadcn/ui'. Prefer using these components over raw HTML.
+- I prefer 'lucide-react' for icons.
