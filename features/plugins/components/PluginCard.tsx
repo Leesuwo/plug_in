@@ -1,7 +1,6 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { useState } from 'react'
 import type { Plugin } from '../types'
@@ -91,7 +90,7 @@ export function PluginCard({ plugin }: PluginCardProps) {
       </div>
 
       {/* 가격 */}
-      <div className="px-4 sm:px-5 md:px-6 pb-3 sm:pb-4 min-h-[32px] sm:min-h-[36px] md:min-h-[40px]">
+      <div className="px-4 sm:px-5 md:px-6 pb-4 sm:pb-5 md:pb-6 min-h-[32px] sm:min-h-[36px] md:min-h-[40px]">
         {plugin.price ? (
           <span className="text-xl sm:text-2xl font-bold text-black">
             ${plugin.price.toFixed(2)}
@@ -99,18 +98,6 @@ export function PluginCard({ plugin }: PluginCardProps) {
         ) : (
           <div className="text-xs sm:text-sm text-gray-400">가격 정보 없음</div>
         )}
-      </div>
-
-      {/* Add to cart 버튼 */}
-      <div className="px-4 sm:px-5 md:px-6 pb-4 sm:pb-5 md:pb-6">
-        <Link
-          href={plugin.sourceUrl || '#'}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full bg-gray-800 text-white text-xs sm:text-sm font-medium uppercase py-2.5 sm:py-3 px-3 sm:px-4 rounded-md text-center transition-colors hover:bg-gray-900 active:bg-gray-950 touch-manipulation"
-        >
-          Add to cart
-        </Link>
       </div>
     </div>
   )
