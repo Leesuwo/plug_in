@@ -1,13 +1,29 @@
-import { getPlugins } from '@/features/plugins/hooks/usePlugins'
+import { Suspense } from 'react'
+import { getPluginsPaginated } from '@/features/plugins/hooks/usePlugins'
 import { PluginCard } from '@/features/plugins/components/PluginCard'
+import { Pagination } from '@/features/plugins/components/Pagination'
+import { PluginSearch } from '@/features/plugins/components/PluginSearch'
 import type { Plugin } from '@/features/plugins/types'
 
-export default async function PluginsPage() {
+interface PluginsPageProps {
+  searchParams: { page?: string; q?: string }
+}
+
+export default async function PluginsPage({ searchParams }: PluginsPageProps) {
+  const currentPage = parseInt(searchParams.page || '1', 10) || 1
+  const pageSize = 20
+  const searchQuery = searchParams.q || undefined
+
   let plugins: Plugin[] = []
+  let totalCount = 0
+  let totalPages = 0
   let error: string | null = null
 
   try {
-    plugins = await getPlugins()
+    const result = await getPluginsPaginated(currentPage, pageSize, searchQuery)
+    plugins = result.plugins
+    totalCount = result.totalCount
+    totalPages = result.totalPages
   } catch (err) {
     error = err instanceof Error ? err.message : '플러그인을 불러오는 중 오류가 발생했습니다.'
     console.error('플러그인 로드 오류:', err)
@@ -16,15 +32,10 @@ export default async function PluginsPage() {
   return (
     <main className="flex-1 p-4 sm:p-6 md:p-8 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* 헤더 */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-black">
-            Browse Plugins
-          </h1>
-          <p className="text-gray-600 text-base sm:text-lg">
-            {plugins.length}개의 플러그인을 탐색하세요
-          </p>
-        </div>
+        {/* 검색바 */}
+        <Suspense fallback={<div className="h-14 mb-6" />}>
+          <PluginSearch />
+        </Suspense>
 
         {/* 에러 메시지 */}
         {error && (
@@ -39,11 +50,19 @@ export default async function PluginsPage() {
 
         {/* 플러그인 그리드 */}
         {plugins.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch">
-            {plugins.map((plugin) => (
-              <PluginCard key={plugin.id} plugin={plugin} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch">
+              {plugins.map((plugin) => (
+                <PluginCard key={plugin.id} plugin={plugin} />
+              ))}
+            </div>
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <Suspense fallback={<div className="h-10" />}>
+                <Pagination currentPage={currentPage} totalPages={totalPages} />
+              </Suspense>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <svg

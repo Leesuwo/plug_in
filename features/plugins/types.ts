@@ -30,7 +30,7 @@ export interface Plugin {
   reviewCount?: number
   releaseDate?: Date
   lastUpdated?: Date
-  source: 'KVR' | 'Splice' | 'Plugin Alliance' | 'Manual' | 'Other'
+  source: 'Plugin Alliance' | 'Slate Digital' | 'Solid State Logic' 
   sourceUrl?: string
 }
 

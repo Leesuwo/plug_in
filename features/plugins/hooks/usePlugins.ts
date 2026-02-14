@@ -1,12 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/src/types/supabase'
+import type { Plugin } from '../types'
+import { nameToSlug } from '../utils/slug'
 
 type PluginRow = Database['public']['Tables']['plugins']['Row']
 
 /**
  * Supabase 플러그인 데이터를 Plugin 타입으로 변환
  */
-function transformPlugin(row: PluginRow) {
+function transformPlugin(row: PluginRow): Plugin {
+  // source 타입 안전하게 변환
+  let source: 'Plugin Alliance' | 'Slate Digital' = 'Plugin Alliance'
+  if (row.source === 'Plugin Alliance' || row.source === 'Slate Digital') {
+    source = row.source
+  }
+
   return {
     id: row.id,
     name: row.name,
@@ -23,7 +31,7 @@ function transformPlugin(row: PluginRow) {
     reviewCount: row.review_count ?? undefined,
     releaseDate: row.release_date ? new Date(row.release_date) : undefined,
     lastUpdated: row.last_updated ? new Date(row.last_updated) : undefined,
-    source: row.source as 'KVR' | 'Splice' | 'Plugin Alliance' | 'Manual' | 'Other',
+    source,
     sourceUrl: row.source_url || undefined,
   }
 }
@@ -67,6 +75,96 @@ export async function getPlugins() {
 }
 
 /**
+ * 페이지네이션을 지원하는 플러그인 가져오기
+ * @param page - 페이지 번호 (1부터 시작)
+ * @param pageSize - 페이지당 항목 수 (기본값: 20)
+ * @param searchQuery - 검색어 (플러그인 이름, 제조사, 설명에서 검색)
+ * @returns 플러그인 배열과 전체 개수
+ */
+export async function getPluginsPaginated(
+  page: number = 1,
+  pageSize: number = 20,
+  searchQuery?: string
+) {
+  // 환경 변수 확인
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL 환경 변수가 설정되지 않았습니다.')
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY 환경 변수가 설정되지 않았습니다.')
+  }
+
+  const supabase = await createClient()
+  
+  // 검색어 처리
+  const searchTerm = searchQuery?.trim()
+  const searchPattern = searchTerm ? `%${searchTerm}%` : null
+
+  // 전체 개수 조회 (검색 조건 포함)
+  let countQuery = supabase.from('plugins').select('*', { count: 'exact', head: true })
+  
+  // 검색어가 있으면 필터 적용 (Supabase .or() 문법: 필드.연산자.값 형식)
+  if (searchPattern) {
+    countQuery = countQuery.or(`name.ilike.${searchPattern},developer.ilike.${searchPattern},description.ilike.${searchPattern}`)
+  }
+
+  const { count, error: countError } = await countQuery
+
+  if (countError) {
+    console.error('Supabase count 쿼리 오류:', countError)
+    throw new Error(`플러그인 개수를 가져오는데 실패했습니다: ${countError.message}`)
+  }
+
+  const totalCount = count || 0
+  const totalPages = Math.ceil(totalCount / pageSize)
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
+  // 페이지네이션된 데이터 조회 (검색 조건 포함)
+  let dataQuery = supabase.from('plugins').select('*')
+  
+  // 검색어가 있으면 필터 적용
+  if (searchPattern) {
+    dataQuery = dataQuery.or(`name.ilike.${searchPattern},developer.ilike.${searchPattern},description.ilike.${searchPattern}`)
+  }
+  
+  const { data, error } = await dataQuery
+    .order('created_at', { ascending: false })
+    .range(from, to)
+
+  if (error) {
+    console.error('Supabase 쿼리 오류:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    })
+    throw new Error(`플러그인 데이터를 가져오는데 실패했습니다: ${error.message} (코드: ${error.code})`)
+  }
+
+  if (!data) {
+    console.warn('플러그인 데이터가 null입니다.')
+    return {
+      plugins: [],
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: page,
+      pageSize,
+    }
+  }
+
+  console.log(`[getPluginsPaginated] 페이지 ${page}: ${data.length}개의 플러그인을 불러왔습니다. (전체: ${totalCount}개)`)
+  
+  return {
+    plugins: data.map(transformPlugin),
+    totalCount,
+    totalPages,
+    currentPage: page,
+    pageSize,
+  }
+}
+
+/**
  * 플러그인 ID로 가져오기
  */
 export async function getPluginById(id: string) {
@@ -83,4 +181,52 @@ export async function getPluginById(id: string) {
   }
 
   return transformPlugin(data)
+}
+
+/**
+ * slug로 플러그인 가져오기
+ * slug는 플러그인 이름을 URL-safe하게 변환한 값
+ */
+export async function getPluginBySlug(slug: string) {
+  // 환경 변수 확인
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL 환경 변수가 설정되지 않았습니다.')
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY 환경 변수가 설정되지 않았습니다.')
+  }
+
+  const supabase = await createClient()
+  
+  // slug를 검색 패턴으로 변환 (하이픈을 공백으로)
+  const searchPattern = slug.replace(/-/g, ' ').replace(/_/g, ' ')
+  
+  // 이름에서 검색 (부분 일치)
+  // slug는 보통 이름의 변형이므로, 이름을 소문자로 변환해서 비교
+  const { data, error } = await supabase
+    .from('plugins')
+    .select('*')
+    .ilike('name', `%${searchPattern}%`)
+    .limit(10) // 여러 결과가 나올 수 있으므로 제한
+
+  if (error) {
+    console.error('Supabase 쿼리 오류:', error)
+    throw new Error(`플러그인을 찾는 중 오류가 발생했습니다: ${error.message}`)
+  }
+
+  if (!data || data.length === 0) {
+    return null
+  }
+
+  // 정확한 매칭 찾기 (slug와 가장 유사한 이름)
+  // 모든 플러그인을 가져와서 slug로 변환해서 비교
+  for (const plugin of data) {
+    const pluginSlug = nameToSlug(plugin.name)
+    if (pluginSlug === slug) {
+      return transformPlugin(plugin)
+    }
+  }
+
+  // 정확한 매칭이 없으면 첫 번째 결과 반환
+  return transformPlugin(data[0])
 }

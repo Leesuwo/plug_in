@@ -1,6 +1,5 @@
 import { ScraperRunner } from './runner'
 import { pluginAllianceScraper } from './scrapers/plugin-alliance'
-import { slateDigitalScraper } from './scrapers/slate-digital'
 import { savePluginsBatch } from './services/storage'
 import { config } from 'dotenv'
 import { resolve } from 'path'
@@ -8,8 +7,8 @@ import { resolve } from 'path'
 config({ path: resolve(process.cwd(), '.env.local')})
 
 /**
- * 크롤링 작업의 메인 진입점
- * npm run crawl 명령으로 실행 가능
+ * Plugin Alliance 크롤링 전용 진입점
+ * npm run crawl:plugin-alliance 명령으로 실행 가능
  */
 async function main() {
   const runner = new ScraperRunner()

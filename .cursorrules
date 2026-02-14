@@ -51,6 +51,13 @@
   - Use real user-agent strings (rotate them if possible).
   - Add random delays (`Math.random() * 1000 + 500`) between actions to mimic human behavior.
 - **Normalization:** Data MUST be cleaned inside the scraper (e.g., "$19.99" -> `19.99`) before returning.
+- **Infinite Scroll (Best Practices):**
+  - **Progressive Scrolling:** Scroll incrementally (80% of viewport height) rather than jumping to the bottom
+  - **Loading Detection:** Wait for loading indicators to disappear when available
+  - **Termination Condition:** Use consecutive no-change threshold (2-3 times) instead of single check
+  - **Random Delays:** Use random delays between scrolls to mimic human behavior
+  - **Selector Flexibility:** Pass item selector as parameter, not hardcoded
+  - **Network Idle:** Wait for `networkidle` state after each scroll with short timeout
 
 # Design Guidelines (DAW Vibe)
 - **Theme:** "Professional Audio Gear" (Dark Mode Default).
@@ -166,3 +173,67 @@ export const siteNameScraper: PluginScraper = {
 - Use `savePluginsBatch` function from `features/crawling/services/storage.ts` for saving crawled data
 - Data is saved via Admin Client to bypass RLS
 - Duplicate check: Use `source_url` or `name + developer + source` combination
+
+## Database Setup (REQUIRED for New Crawlers)
+**CRITICAL**: When creating a new scraper, you MUST also provide SQL to update the database schema.
+
+### Step 1: Update TypeScript Types
+Add the new source to `features/plugins/types.ts`:
+```typescript
+source: 'Plugin Alliance' | 'Slate Digital' | 'New Source Name'
+```
+
+### Step 2: Update Supabase CHECK Constraint
+Run this SQL in Supabase SQL Editor **BEFORE** running the crawler:
+
+```sql
+-- 1. Check existing constraint
+SELECT 
+  conname AS constraint_name,
+  pg_get_constraintdef(oid) AS constraint_definition
+FROM pg_constraint
+WHERE conrelid = 'public.plugins'::regclass
+  AND conname LIKE '%source%';
+
+-- 2. Drop existing constraint (replace 'plugins_source_check' with actual name from step 1)
+ALTER TABLE public.plugins 
+DROP CONSTRAINT IF EXISTS plugins_source_check;
+
+-- 3. Add new constraint with ALL sources (including the new one)
+ALTER TABLE public.plugins 
+ADD CONSTRAINT plugins_source_check 
+CHECK (source IN ('Plugin Alliance', 'Slate Digital', 'New Source Name'));
+```
+
+### Step 3: Update Image Domain (REQUIRED)
+**CRITICAL**: Next.js Image Optimization을 위해 이미지 도메인을 반드시 추가해야 합니다.
+
+Add image domain to `next.config.mjs`:
+```javascript
+images: {
+  remotePatterns: [
+    // ... existing patterns
+    {
+      protocol: 'https',
+      hostname: 'newsite.com', // 크롤링 대상 사이트의 도메인
+      pathname: '/**',
+    },
+  ],
+}
+```
+
+**Important Notes:**
+- 크롤러에서 이미지 URL을 추출하는 경우, 해당 도메인을 반드시 추가해야 합니다.
+- `hostname`은 도메인만 입력 (예: `solidstatelogic.com`, `www.plugin-alliance.com`)
+- `www`가 있는 도메인과 없는 도메인은 별도로 추가해야 합니다.
+- 이미지 URL이 상대 경로(`/assets/...`)인 경우, 크롤러에서 절대 경로로 변환하므로 도메인 추가가 필요합니다.
+
+### Step 4: Create Crawler Entry Point
+Create `features/crawling/crawl-[source-name].ts` and add script to `package.json`:
+```json
+"crawl:[source-name]": "tsx features/crawling/crawl-[source-name].ts"
+```
+
+**IMPORTANT**: 
+- Always provide the SQL migration script when creating a new scraper. The CHECK constraint MUST be updated before the first crawl attempt.
+- Always add the image domain to `next.config.mjs` if the crawler extracts image URLs (Step 3).

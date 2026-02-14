@@ -1,5 +1,4 @@
 import { ScraperRunner } from './runner'
-import { pluginAllianceScraper } from './scrapers/plugin-alliance'
 import { slateDigitalScraper } from './scrapers/slate-digital'
 import { savePluginsBatch } from './services/storage'
 import { config } from 'dotenv'
@@ -8,19 +7,20 @@ import { resolve } from 'path'
 config({ path: resolve(process.cwd(), '.env.local')})
 
 /**
- * 크롤링 작업의 메인 진입점
- * npm run crawl 명령으로 실행 가능
+ * Slate Digital 크롤링 전용 진입점
+ * npm run crawl:slate-digital 명령으로 실행 가능
  */
 async function main() {
   const runner = new ScraperRunner()
   
   try {
     await runner.init()
-    console.log('Plugin Alliance 크롤링 시작...')
+    console.log('Slate Digital 크롤링 시작...')
     
     // Strategy Pattern: 스크래퍼를 실행기에 전달하여 실행
-    const result = await runner.run(pluginAllianceScraper, {
-      maxPages: 10,
+    // 무한 스크롤이므로 maxPages는 무시됨
+    const result = await runner.run(slateDigitalScraper, {
+      maxPages: 1, // 무한 스크롤이므로 의미 없지만 호환성을 위해 유지
       minDelay: 1500,
       maxDelay: 3000,
     })
@@ -38,7 +38,7 @@ async function main() {
     if (result.crawledData.length > 0) {
       const storageResult = await savePluginsBatch(
         result.crawledData,
-        pluginAllianceScraper.name
+        slateDigitalScraper.name
       )
       console.log(`\n저장 결과: ${storageResult.saved}개 저장, ${storageResult.skipped}개 건너뜀, ${storageResult.errors}개 오류`)
     } else {
