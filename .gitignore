@@ -45,9 +45,6 @@ crawled-plugins.json
 # nested git repositories
 /plug_in/
 
-# github workflows (if token doesn't have workflow scope)
-.github/workflows/
-
 # Playwright
 node_modules/
 /blob-report/

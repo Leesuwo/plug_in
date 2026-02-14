@@ -1,0 +1,39 @@
+name: Daily Plugin Crawl
+
+on:
+  schedule:
+    # 매일 한국 시간 새벽 4시 실행 (UTC 19:00)
+    # 크롤링은 서버 부하가 적은 새벽에 하는 게 국룰입니다.
+    - cron: '0 19 * * *'
+  workflow_dispatch: # GitHub 웹에서 수동으로 'Run' 버튼을 누를 수 있게 함
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # 15분 넘으면 강제 종료 (무한 루프 방지)
+
+    steps:
+      - name: Checkout code (코드 내려받기)
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (노드 설치)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies (라이브러리 설치)
+        # ci는 clean install의 약자로, package-lock.json을 엄격하게 따릅니다.
+        run: npm ci
+
+      - name: Install Playwright Browsers (브라우저 설치)
+        # 크로미움만 설치해서 시간을 아낍니다.
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Crawler (크롤러 실행)
+        # runner.ts를 실행합니다.
+        run: npx ts-node src/features/crawling/runner.ts
+        env:
+          # 위에서 등록한 GitHub Secrets를 환경변수로 주입
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

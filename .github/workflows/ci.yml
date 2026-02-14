@@ -1,0 +1,33 @@
+name: CI (Check Integrity)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Type Check (TypeScript 오류 검사)
+        run: npx tsc --noEmit
+        
+      - name: Lint Check (코드 스타일 검사)
+        run: npm run lint
+        
+      - name: Build Test (빌드가 진짜 되는지 확인)
+        run: npm run build
+        env:
+           # 빌드 테스트를 위해 가짜 키라도 넣어줘야 함 (실제 실행은 안 하므로)
+           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
+           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
