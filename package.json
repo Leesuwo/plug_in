@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3000",
     "lint": "next lint",
-    "crawl": "tsx features/crawling/index.ts"
+    "crawl": "tsx features/crawling/index.ts",
+    "gen-types": "npx supabase gen types typescript --project-id \"xandrpzixwqctepkrrkj\" --schema public > src/types/supabase.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
@@ -17,8 +18,11 @@
     "@radix-ui/react-separator": "^1.0.3",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tabs": "^1.0.4",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.95.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "dotenv": "^17.3.1",
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.344.0",
     "next": "^14.2.0",

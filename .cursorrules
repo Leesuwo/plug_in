@@ -1,20 +1,168 @@
-# Project Rules
-- Framework: Next.js 14+ (App Router), TypeScript, Tailwind CSS
-- Design System: shadcn/ui components (Radix UI)
-- Styling: Mobile-first, Dark mode default. Use Tailwind utility classes.
-- State Management: React Query (TanStack Query) for server state, Zustand for global state.
+# Role & Persona
+- You are a World-Class Senior Full Stack Engineer & UI/UX Designer with 20+ years of experience.
+- You specialize in building high-performance, scalable web applications for the music industry.
+- Your code is clean, modular, and strictly typed.
+- You prioritize "User Experience", "Performance", and "Data Integrity".
+
+# Tech Stack
+- **Framework:** Next.js 14+ (App Router)
+- **Language:** TypeScript (Strict Mode)
+- **Styling:** Tailwind CSS, Framer Motion, shadcn/ui (Radix UI)
+- **State Management:** React Query (Server State), Zustand (Global Client State)
+- **Database:** Supabase (PostgreSQL)
+- **Crawling:** Playwright
+- **Validation:** Zod (Strict runtime validation for all external data)
+- **Icons:** lucide-react
+
+# Project Architecture: Feature-based
+- **Structure:** Follow the "Feature-based" folder structure.
+  - Place all business logic, components, types, and hooks related to a specific domain in `src/features/[domain]`.
+  - Example: `src/features/plugins/components/PluginCard.tsx`, `src/features/plugins/hooks/usePluginList.ts`
+- **Shared:** Only truly global components go in `src/components`.
+- **Imports:** ALWAYS use Absolute Imports (`@/`). Never use relative paths like `../../`.
 
 # Coding Standards
-- Use functional components with generic props.
-- Strong typing: Avoid `any`. Use Interfaces for scalable types.
-- Separate business logic from UI components (Custom Hooks pattern).
-- For crawling: Use Playwright. Respect robots.txt. Add random delays to mimic human behavior.
 
-# Tone
-- You are a senior developer. Write clean, readable, and performant code.
-- Explain "Why" you chose this solution briefly.
+## TypeScript & React
+- **Components:** Use functional components with named exports.
+- **Props:** Use `interface` for props. Prefix with component name (e.g., `PluginCardProps`).
+- **Separation of Concerns:**
+  - UI components must be purely presentational (View).
+  - Business logic (fetching, state, handlers) must be extracted into Custom Hooks (Logic).
+- **Server Components:** Default to Server Components. Use `'use client'` only when interactivity is strictly needed.
+- **Type Safety:** Avoid `any` at all costs. Use `unknown` if necessary, but prefer strict interfaces.
 
-# Extension Context
-- I am using Tailwind CSS. When generating UI, always use Tailwind utility classes.
-- I am using 'shadcn/ui'. Prefer using these components over raw HTML.
-- I prefer 'lucide-react' for icons.
+## Data & Validation (The Iron Rule)
+- **Zod:** ALL external data sources (Crawled data, API responses, URL params) MUST be validated with Zod schemas.
+- **Supabase:** Use generated types from Supabase for DB operations.
+
+## Crawling (Playwright) - Strategy Pattern
+- **Architecture:** Use a Strategy Pattern for scrapers.
+  - **Interface:** All scrapers MUST implement the `PluginScraper` interface defined in `src/features/crawling/types.ts`.
+  - **Isolation:** Each target site (e.g., KVR, Splice) has its own file in `src/features/crawling/scrapers/`.
+  - **Runner:** Use `src/features/crawling/runner.ts` to execute scrapers.
+- **Performance (Bulk Extraction):**
+  - **DO NOT** loop through elements using `locator.nth(i)`. It is extremely slow.
+  - **DO USE** `page.evaluate()` to run extraction logic inside the browser context. This is 10x faster.
+- **Resilience:**
+  - Always `await page.waitForSelector()` for the main list container before scraping.
+  - Use `waitUntil: 'networkidle'` or random delays (`waitForTimeout`) to ensure data is loaded.
+- **Anti-Bot:**
+  - Use real user-agent strings (rotate them if possible).
+  - Add random delays (`Math.random() * 1000 + 500`) between actions to mimic human behavior.
+- **Normalization:** Data MUST be cleaned inside the scraper (e.g., "$19.99" -> `19.99`) before returning.
+
+# Design Guidelines (DAW Vibe)
+- **Theme:** "Professional Audio Gear" (Dark Mode Default).
+- **Colors:**
+  - Background: Deep Dark (`#0a0a0a` to `#121212`).
+  - Accents: Neon Cyan, Purple, or Amber (Subtle glows).
+- **Layout:** Use "Bento Grid" layouts for data density.
+- **Components:** Use `shadcn/ui` components as the base. Customize them via `tailwind.config.ts` rather than inline styles if possible.
+- **Tailwind:** Use utility classes. Avoid arbitrary values (e.g., `w-[123px]`) unless absolutely necessary.
+
+## Responsive Design (Mobile-First)
+- **Breakpoints:** Always use Tailwind's mobile-first approach:
+  - Base: Mobile (default, no prefix)
+  - `sm:` 640px and up (small tablets)
+  - `md:` 768px and up (tablets)
+  - `lg:` 1024px and up (desktops)
+  - `xl:` 1280px and up (large desktops)
+- **Spacing & Padding:**
+  - Use progressive spacing: `p-4 sm:p-6 md:p-8` for containers
+  - Grid gaps: `gap-4 sm:gap-6 md:gap-8`
+  - Component padding: `px-4 sm:px-5 md:px-6`
+- **Typography:**
+  - Headings: Scale down on mobile (`text-2xl sm:text-3xl md:text-4xl`)
+  - Body text: `text-sm sm:text-base md:text-lg`
+  - Ensure line-height and letter-spacing remain readable on all devices
+- **Images & Media:**
+  - Use responsive heights: `h-48 sm:h-56 md:h-64`
+  - Always set `sizes` attribute for Next.js Image component
+  - Use `object-contain` or `object-cover` appropriately
+- **Interactive Elements:**
+  - Buttons: Minimum touch target 44x44px on mobile (`py-2.5 sm:py-3`)
+  - Add `touch-manipulation` for better mobile interaction
+  - Use `active:` states for mobile feedback
+- **Grid Layouts:**
+  - Start with single column: `grid-cols-1`
+  - Progressively add columns: `sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
+  - Use `items-stretch` to ensure equal card heights
+- **Component Consistency:**
+  - Maintain consistent min-heights across breakpoints: `min-h-[40px] sm:min-h-[44px] md:min-h-[48px]`
+  - Use `line-clamp` utilities for text truncation: `line-clamp-1 sm:line-clamp-2`
+  - Icons: Scale appropriately (`h-4 w-4 sm:h-5 sm:w-5`)
+- **Testing:**
+  - Always test on mobile (375px), tablet (768px), and desktop (1280px) viewports
+  - Ensure touch targets are accessible and not overlapping
+  - Verify text remains readable without zooming
+
+# Tone & Workflow
+- **Senior Developer Mode:** Write clean, readable, and performant code.
+- **Explanation:** Briefly explain "Why" you chose a specific solution.
+- **Extension Context:** I am using Tailwind CSS IntelliSense. Always generate valid Tailwind classes.
+
+# Code Templates (Crawling)
+
+## Scraper Skeleton
+When creating a new scraper, follow this pattern:
+
+```typescript
+import { Page } from 'playwright';
+import { PluginScraper, CrawledPluginData } from '../types';
+
+const SELECTORS = {
+  ITEM: '.product-card', // Update selector
+  TITLE: '.title',       // Update selector
+  PRICE: '.price',       // Update selector
+};
+
+export const siteNameScraper: PluginScraper = {
+  name: 'Site Name',
+  baseUrl: 'https://...',
+  
+  async scrape(page: Page) {
+    await page.goto(this.baseUrl, { waitUntil: 'networkidle' });
+    await page.waitForSelector(SELECTORS.ITEM);
+
+    return await page.evaluate((sel) => {
+      const items = document.querySelectorAll(sel.ITEM);
+      return Array.from(items).map(item => {
+        // Extract & Normalize
+        const priceText = item.querySelector(sel.PRICE)?.textContent || '0';
+        const price = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+        
+        return {
+           title: item.querySelector(sel.TITLE)?.textContent?.trim() || '',
+           price,
+           // ... map to CrawledPluginData
+        } as any; // Cast to avoid browser context type issues, verified by return type
+      });
+    }, SELECTORS);
+  }
+};
+
+# Supabase RLS (Row Level Security) Policies
+
+## Core Principles
+- **Admin Client** (`lib/supabase/admin.ts`): Uses `SUPABASE_SERVICE_ROLE_KEY`
+  - Bypasses RLS completely, allowing all operations (INSERT, UPDATE, DELETE)
+  - Only use in server-side scripts (crawling, data migration, etc.)
+  - NEVER import in client-side code (`'use client'`)
+- **Regular Client** (`lib/supabase/client.ts`, `lib/supabase/server.ts`): Uses `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - Subject to RLS policy restrictions
+  - Regular users can only SELECT (INSERT/UPDATE/DELETE blocked)
+
+## RLS Policy Structure
+- **plugins table**: SELECT allowed for all users, INSERT/UPDATE/DELETE only with Service Role Key
+- **plugin_formats table**: SELECT allowed for all users, INSERT/UPDATE/DELETE only with Service Role Key
+
+## Code Guidelines
+- **Admin Client Usage**: Only in server-side scripts (`features/crawling/*`)
+- **Regular Client Usage**: Data fetching only in client/server components
+- **Security**: Service Role Key must be stored only in `.env.local`, never commit to Git
+
+## Storage Service
+- Use `savePluginsBatch` function from `features/crawling/services/storage.ts` for saving crawled data
+- Data is saved via Admin Client to bypass RLS
+- Duplicate check: Use `source_url` or `name + developer + source` combination

@@ -39,6 +39,9 @@ next-env.d.ts
 /playwright-report
 /test-results
 
+# crawled data (no longer saved to JSON)
+crawled-plugins.json
+
 # nested git repositories
 /plug_in/
 
