@@ -2,7 +2,6 @@ import { Suspense } from 'react'
 import { getPluginsPaginated } from '@/features/plugins/hooks/usePlugins'
 import { PluginCard } from '@/features/plugins/components/PluginCard'
 import { Pagination } from '@/features/plugins/components/Pagination'
-import { PluginSearch } from '@/features/plugins/components/PluginSearch'
 import type { Plugin } from '@/features/plugins/types'
 
 interface PluginsPageProps {
@@ -32,11 +31,6 @@ export default async function PluginsPage({ searchParams }: PluginsPageProps) {
   return (
     <main className="flex-1 p-4 sm:p-6 md:p-8 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* 검색바 */}
-        <Suspense fallback={<div className="h-14 mb-6" />}>
-          <PluginSearch />
-        </Suspense>
-
         {/* 에러 메시지 */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">

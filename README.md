@@ -9,6 +9,8 @@ A comprehensive platform for discovering and exploring VST/AU audio plugins used
 - **Styling**: Tailwind CSS, Framer Motion
 - **UI Library**: shadcn/ui (Radix UI based)
 - **Icons**: Lucide React
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth (Google OAuth only)
 - **Data Fetching**: Playwright (for scraping)
 - **State Management**: Zustand
 
@@ -51,6 +53,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Authentication Setup
+
+구글 로그인을 사용하려면 Supabase 설정이 필요합니다. 자세한 내용은 [인증 설정 가이드](./docs/AUTH_SETUP.md)를 참조하세요.
+
+**빠른 설정:**
+1. Supabase Dashboard에서 Google OAuth Provider 활성화
+2. `supabase/migrations/` 폴더의 SQL 스크립트 실행
+3. 환경 변수 설정 확인
+
 ### Crawling
 
 Run the crawler to fetch plugin data:
@@ -64,6 +75,7 @@ npm run crawl
 - 🎹 Plugin browsing and search
 - 📊 Rankings and charts
 - 🔍 Advanced filtering
+- 🔐 Google OAuth authentication
 - 📱 Responsive design
 - 🌙 Dark mode optimized
 

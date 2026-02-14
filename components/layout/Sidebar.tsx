@@ -1,13 +1,14 @@
 "use client"
 
-import { Home, Search, X } from "lucide-react"
-import Link from "next/link"
+import { Home, Search, X, MessageSquare } from "lucide-react"
 import { usePathname } from "next/navigation"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "Plugins", href: "/plugins", icon: Search },
+  { name: "Requests", href: "/requests", icon: MessageSquare },
 ]
 
 interface SidebarProps {
