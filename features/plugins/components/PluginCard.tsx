@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Plugin } from '../types'
@@ -7,36 +8,59 @@ import { nameToSlug } from '../utils/slug'
 
 interface PluginCardProps {
   plugin: Plugin
+  index?: number // 첫 화면 이미지 priority 최적화를 위한 인덱스
 }
 
-export function PluginCard({ plugin }: PluginCardProps) {
-  const slug = nameToSlug(plugin.name)
+export function PluginCard({ plugin, index = 0 }: PluginCardProps) {
+  // slug 계산을 메모이제이션하여 불필요한 재계산 방지
+  const slug = useMemo(() => nameToSlug(plugin.name), [plugin.name])
+  
+  // 첫 화면 이미지(상위 8개)는 priority로 설정하여 LCP 개선
+  const isPriorityImage = index < 8
+  
+  // 이미지 로딩 상태 추적
+  const [imageLoading, setImageLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
 
   return (
     <Link
       href={`/${slug}`}
       className="group relative flex flex-col h-full bg-white rounded-lg overflow-hidden border border-gray-100 transition-shadow hover:shadow-lg"
+      prefetch={true} // 링크 prefetch로 페이지 전환 속도 개선
     >
       {/* plugin-item-box2: 이미지 박스 영역 */}
       <div className="relative w-full">
         {/* plugin-item-img: 이미지 영역 */}
         <div 
-          className="relative w-full overflow-hidden"
+          className="relative w-full overflow-hidden bg-gray-50"
           style={{ 
             aspectRatio: '318 / 250', // HTML의 width="318" height="250" 참고
             paddingBottom: '78.6%' // 250/318 ≈ 0.786
           }}
         >
-          {plugin.imageUrl ? (
+          {plugin.imageUrl && !imageError ? (
             <div className="absolute inset-0 flex items-center justify-center p-1 sm:p-2 md:p-3">
+              {/* 로딩 스켈레톤 */}
+              {imageLoading && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
+              )}
               <div className="relative w-full h-full">
                 <Image
                   src={plugin.imageUrl}
                   alt={plugin.name}
                   fill
-                  className="object-contain"
+                  className={`object-contain transition-opacity duration-300 ${
+                    imageLoading ? 'opacity-0' : 'opacity-100'
+                  }`}
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                  priority={false}
+                  priority={isPriorityImage}
+                  quality={85} // 품질과 용량의 균형 (기본값 75보다 약간 높게)
+                  loading={isPriorityImage ? undefined : 'lazy'} // priority가 아닌 경우 lazy loading 명시
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => {
+                    setImageError(true)
+                    setImageLoading(false)
+                  }}
                 />
               </div>
             </div>

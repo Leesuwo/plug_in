@@ -77,10 +77,25 @@ export async function getRequestsPaginated(
 
   const supabase = await createClient()
   
-  // 전체 개수 조회 (plugin_requests 테이블이 타입에 아직 없으므로 타입 단언 사용)
-  const { count, error: countError } = await (supabase as any)
-    .from('plugin_requests')
-    .select('*', { count: 'exact', head: true })
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
+  // count 쿼리와 data 쿼리를 병렬 처리하여 성능 개선
+  const [countResult, dataResult] = await Promise.all([
+    // 전체 개수 조회 (plugin_requests 테이블이 타입에 아직 없으므로 타입 단언 사용)
+    (supabase as any)
+      .from('plugin_requests')
+      .select('*', { count: 'exact', head: true }),
+    // 페이지네이션된 데이터 조회 (plugin_requests 테이블이 타입에 아직 없으므로 타입 단언 사용)
+    (supabase as any)
+      .from('plugin_requests')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to),
+  ])
+
+  const { count, error: countError } = countResult
+  const { data, error } = dataResult
 
   if (countError) {
     console.error('Supabase count 쿼리 오류:', countError)
@@ -89,15 +104,6 @@ export async function getRequestsPaginated(
 
   const totalCount = count || 0
   const totalPages = Math.ceil(totalCount / pageSize)
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
-
-  // 페이지네이션된 데이터 조회 (plugin_requests 테이블이 타입에 아직 없으므로 타입 단언 사용)
-  const { data, error } = await (supabase as any)
-    .from('plugin_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .range(from, to)
 
   if (error) {
     console.error('Supabase 쿼리 오류:', {

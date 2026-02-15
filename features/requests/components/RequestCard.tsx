@@ -1,3 +1,6 @@
+'use client'
+
+import { useMemo } from 'react'
 import type { PluginRequest } from '../types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExternalLink } from 'lucide-react'
@@ -7,11 +10,16 @@ interface RequestCardProps {
 }
 
 export function RequestCard({ request }: RequestCardProps) {
-  const createdAt = new Date(request.created_at).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  // 날짜 포맷팅을 메모이제이션하여 불필요한 재계산 방지
+  const createdAt = useMemo(
+    () =>
+      new Date(request.created_at).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    [request.created_at]
+  )
 
   return (
     <Card className="bg-dark-audio-surface border-dark-audio-border hover:border-dark-audio-border-light transition-colors">

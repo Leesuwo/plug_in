@@ -1,5 +1,6 @@
 "use client"
 
+import { memo, useCallback } from "react"
 import { Home, Search, X, MessageSquare } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -15,19 +16,20 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-export function Sidebar({ onClose }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
 
-  const handleLinkClick = () => {
+  // 링크 클릭 핸들러를 메모이제이션하여 불필요한 리렌더링 방지
+  const handleLinkClick = useCallback(() => {
     // 모바일에서 링크 클릭 시 사이드바 닫기
     // lg 브레이크포인트(1024px) 미만에서는 사이드바가 오버레이로 표시되므로 닫기
     if (onClose) {
-      // 클라이언트 사이드에서만 실행
+      // 클라이언트 사이드에서만 실행하고, 모바일일 때만 닫기
       if (typeof window !== 'undefined' && window.innerWidth < 1024) {
         onClose()
       }
     }
-  }
+  }, [onClose])
 
   return (
     <aside className="w-64 h-full bg-dark-audio-surface border-r border-dark-audio-border flex flex-col shadow-lg lg:shadow-none">
@@ -59,6 +61,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               key={item.name}
               href={item.href}
               onClick={handleLinkClick}
+              prefetch={true} // 링크 prefetch로 페이지 전환 속도 개선
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                 isActive
@@ -80,4 +83,4 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
     </aside>
   )
-}
+})

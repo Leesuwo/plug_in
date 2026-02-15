@@ -1,8 +1,7 @@
-import { Suspense } from 'react'
 import { getRequestsPaginated } from '@/features/requests/hooks/useRequests'
 import { RequestCard } from '@/features/requests/components/RequestCard'
 import { RequestForm } from '@/features/requests/components/RequestForm'
-import { Pagination } from '@/features/plugins/components/Pagination'
+import { PaginationWrapper } from '@/features/plugins/components/PaginationWrapper'
 import type { PluginRequest } from '@/features/requests/types'
 
 interface RequestsPageProps {
@@ -60,11 +59,7 @@ export default async function RequestsPage({ searchParams }: RequestsPageProps) 
                   ))}
                 </div>
                 {/* 페이지네이션 */}
-                {totalPages > 1 && (
-                  <Suspense fallback={<div className="h-10" />}>
-                    <Pagination currentPage={currentPage} totalPages={totalPages} />
-                  </Suspense>
-                )}
+                <PaginationWrapper currentPage={currentPage} totalPages={totalPages} basePath="/requests" />
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">

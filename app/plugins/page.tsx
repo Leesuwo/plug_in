@@ -1,7 +1,6 @@
-import { Suspense } from 'react'
 import { getPluginsPaginated } from '@/features/plugins/hooks/usePlugins'
 import { PluginCard } from '@/features/plugins/components/PluginCard'
-import { Pagination } from '@/features/plugins/components/Pagination'
+import { PaginationWrapper } from '@/features/plugins/components/PaginationWrapper'
 import type { Plugin } from '@/features/plugins/types'
 
 interface PluginsPageProps {
@@ -10,7 +9,7 @@ interface PluginsPageProps {
 
 export default async function PluginsPage({ searchParams }: PluginsPageProps) {
   const currentPage = parseInt(searchParams.page || '1', 10) || 1
-  const pageSize = 20
+  const pageSize = 12
   const searchQuery = searchParams.q || undefined
 
   let plugins: Plugin[] = []
@@ -45,17 +44,13 @@ export default async function PluginsPage({ searchParams }: PluginsPageProps) {
         {/* 플러그인 그리드 */}
         {plugins.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch">
-              {plugins.map((plugin) => (
-                <PluginCard key={plugin.id} plugin={plugin} />
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 lg:gap-8 items-stretch">
+              {plugins.map((plugin, index) => (
+                <PluginCard key={plugin.id} plugin={plugin} index={index} />
               ))}
             </div>
             {/* 페이지네이션 */}
-            {totalPages > 1 && (
-              <Suspense fallback={<div className="h-10" />}>
-                <Pagination currentPage={currentPage} totalPages={totalPages} />
-              </Suspense>
-            )}
+            <PaginationWrapper currentPage={currentPage} totalPages={totalPages} />
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">

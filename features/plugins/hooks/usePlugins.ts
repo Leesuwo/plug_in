@@ -66,11 +66,13 @@ export async function getPlugins() {
   }
 
   if (!data) {
-    console.warn('플러그인 데이터가 null입니다.')
+    // 개발 환경에서만 경고 출력
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('플러그인 데이터가 null입니다.')
+    }
     return []
   }
 
-  console.log(`[getPlugins] ${data.length}개의 플러그인을 불러왔습니다.`)
   return data.map(transformPlugin)
 }
 
@@ -100,15 +102,25 @@ export async function getPluginsPaginated(
   const searchTerm = searchQuery?.trim()
   const searchPattern = searchTerm ? `%${searchTerm}%` : null
 
-  // 전체 개수 조회 (검색 조건 포함)
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
+  // count 쿼리와 data 쿼리를 병렬 처리하여 성능 개선
+  // 검색 조건이 있으면 동일한 필터를 두 쿼리에 적용
   let countQuery = supabase.from('plugins').select('*', { count: 'exact', head: true })
+  let dataQuery = supabase.from('plugins').select('*').order('created_at', { ascending: false }).range(from, to)
   
-  // 검색어가 있으면 필터 적용 (Supabase .or() 문법: 필드.연산자.값 형식)
   if (searchPattern) {
-    countQuery = countQuery.or(`name.ilike.${searchPattern},developer.ilike.${searchPattern},description.ilike.${searchPattern}`)
+    const searchFilter = `name.ilike.${searchPattern},developer.ilike.${searchPattern},description.ilike.${searchPattern}`
+    countQuery = countQuery.or(searchFilter)
+    dataQuery = dataQuery.or(searchFilter)
   }
 
-  const { count, error: countError } = await countQuery
+  // 두 쿼리를 병렬 실행
+  const [countResult, dataResult] = await Promise.all([countQuery, dataQuery])
+
+  const { count, error: countError } = countResult
+  const { data, error } = dataResult
 
   if (countError) {
     console.error('Supabase count 쿼리 오류:', countError)
@@ -117,20 +129,6 @@ export async function getPluginsPaginated(
 
   const totalCount = count || 0
   const totalPages = Math.ceil(totalCount / pageSize)
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
-
-  // 페이지네이션된 데이터 조회 (검색 조건 포함)
-  let dataQuery = supabase.from('plugins').select('*')
-  
-  // 검색어가 있으면 필터 적용
-  if (searchPattern) {
-    dataQuery = dataQuery.or(`name.ilike.${searchPattern},developer.ilike.${searchPattern},description.ilike.${searchPattern}`)
-  }
-  
-  const { data, error } = await dataQuery
-    .order('created_at', { ascending: false })
-    .range(from, to)
 
   if (error) {
     console.error('Supabase 쿼리 오류:', {
@@ -143,7 +141,10 @@ export async function getPluginsPaginated(
   }
 
   if (!data) {
-    console.warn('플러그인 데이터가 null입니다.')
+    // 개발 환경에서만 경고 출력
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('플러그인 데이터가 null입니다.')
+    }
     return {
       plugins: [],
       totalCount: 0,
@@ -153,8 +154,6 @@ export async function getPluginsPaginated(
     }
   }
 
-  console.log(`[getPluginsPaginated] 페이지 ${page}: ${data.length}개의 플러그인을 불러왔습니다. (전체: ${totalCount}개)`)
-  
   return {
     plugins: data.map(transformPlugin),
     totalCount,

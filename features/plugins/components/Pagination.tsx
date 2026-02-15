@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
@@ -13,20 +14,23 @@ interface PaginationProps {
 export function Pagination({ currentPage, totalPages, basePath = '/plugins' }: PaginationProps) {
   const searchParams = useSearchParams()
   
-  // 현재 검색 파라미터 유지하면서 페이지 번호만 변경하는 함수
-  const createPageUrl = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (page === 1) {
-      params.delete('page')
-    } else {
-      params.set('page', page.toString())
-    }
-    const queryString = params.toString()
-    return queryString ? `${basePath}?${queryString}` : basePath
-  }
+  // 현재 검색 파라미터 유지하면서 페이지 번호만 변경하는 함수를 메모이제이션
+  const createPageUrl = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (page === 1) {
+        params.delete('page')
+      } else {
+        params.set('page', page.toString())
+      }
+      const queryString = params.toString()
+      return queryString ? `${basePath}?${queryString}` : basePath
+    },
+    [searchParams, basePath]
+  )
 
-  // 표시할 페이지 번호들 계산
-  const getPageNumbers = () => {
+  // 표시할 페이지 번호들 계산을 메모이제이션하여 불필요한 재계산 방지
+  const pageNumbers = useMemo(() => {
     const pages: (number | string)[] = []
     const maxVisible = 7 // 최대 표시할 페이지 번호 수
     
@@ -64,7 +68,7 @@ export function Pagination({ currentPage, totalPages, basePath = '/plugins' }: P
     }
     
     return pages
-  }
+  }, [currentPage, totalPages])
 
   if (totalPages <= 1) {
     return null
@@ -88,7 +92,7 @@ export function Pagination({ currentPage, totalPages, basePath = '/plugins' }: P
 
       {/* 페이지 번호 */}
       <div className="flex items-center gap-1">
-        {getPageNumbers().map((page, index) => {
+        {pageNumbers.map((page, index) => {
           if (page === '...') {
             return (
               <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
